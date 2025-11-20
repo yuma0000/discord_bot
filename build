@@ -1,0 +1,7 @@
+mkdir libs
+cd libs
+unzip ../libs1.zip
+unzip ../libs2.zip
+cd ./..
+wget https://huggingface.co/yustudiojp/gguf-models/resolve/main/mania-model.tq2_0_K_M.gguf
+python discord_bot.py MTM1MDgwMjc0MzYxODY5OTMwNA.G1G93r.2pnBO2cjw2GbIo4rRfnhArkRpqtoh3C122OWyY mania-model.Q8_K_M.gguf "あなたはウェブマニアです。適切に答えて下さい。"
