@@ -18,8 +18,8 @@ from discord import app_commands
 from llama_cpp import Llama
 
 # ====== 設定 ======
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", sys.argv[1])
-GGUF_PATH = sys.argv[2]
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+GGUF_PATH = sys.argv[1]
 
 MAX_NEW_TOKENS = 100
 STREAM_DELAY = 0.3
@@ -164,7 +164,7 @@ async def discord_generate(interaction: discord.Interaction, prompt: str, reply_
 @bot.tree.command(name="mania", description="ウェブマニアとして回答します。")
 @app_commands.describe(prompt="質問内容を入力してください。", reply_to="返信したいメッセージID")
 async def mania_slash(interaction: discord.Interaction, prompt: str, reply_to: str = None):
-    text = f"""system:{sys.argv[3]}
+    text = f"""system:{sys.argv[2]}
 user:{prompt}
 ウェブマニア:"""
     await discord_generate(interaction, text, reply_to, True)
