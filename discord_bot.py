@@ -44,15 +44,6 @@ RUNTIME_CONFIG = {
     "n_ctx": 4096
 }
 
-NUMERIC_PARAMS = {
-    "max_tokens": int,
-    "temperature": float,
-    "top_p": float,
-    "top_k": int,
-    "repeat_penalty": float,
-    "stop": list,
-}
-
 # ====== ログ設定 ======
 logging.basicConfig(
     level=logging.INFO,
@@ -128,7 +119,7 @@ class ManiaBot(commands.Bot):
 bot = ManiaBot()
 
 async def discord_generate(interaction: discord.Interaction, prompt: str, is_base: bool = True, secret: bool = False):
-    await interaction.response.send_message("生成中です…", secret)
+    await interaction.response.send_message(content="生成中です…", ephemeral=secret)
     msg = await interaction.original_response()
 
     collected = ""
