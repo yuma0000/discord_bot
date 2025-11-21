@@ -65,7 +65,7 @@ class log_http_handler(SimpleHTTPRequestHandler):
         self.wfile.write(html.encode("utf-8"))
 
 def start_webserver():
-    with socketserver.TCPServer(("", 80), log_http_handler) as httpd:
+    with socketserver.TCPServer(("", 8080), log_http_handler) as httpd:
         log.info("webserver start")
         httpd.serve_forever()
 thread = threading.Thread(target=start_webserver, daemon=True)
