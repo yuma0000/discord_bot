@@ -63,7 +63,7 @@ logging.basicConfig(
 log = logging.getLogger("LLM-Bot")
 
 #webserver
-def start_ webserver():
+def start_webserver():
     with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHandler) as httpd:
         print("webserver start")
         httpd.serve_forever()
@@ -127,8 +127,8 @@ class ManiaBot(commands.Bot):
 
 bot = ManiaBot()
 
-async def discord_generate(interaction: discord.Interaction, prompt: str, is_base: bool = True):
-    await interaction.response.send_message("生成中です…")
+async def discord_generate(interaction: discord.Interaction, prompt: str, is_base: bool = True, secret: bool = False):
+    await interaction.response.send_message("生成中です…", secret)
     msg = await interaction.original_response()
 
     collected = ""
@@ -148,12 +148,12 @@ async def discord_generate(interaction: discord.Interaction, prompt: str, is_bas
  
 # ====== /mania ======
 @bot.tree.command(name="mania", description="ウェブマニアとして回答します。")
-@app_commands.describe(prompt="質問内容を入力してください。", reply_to="返信したいメッセージID")
-async def mania_slash(interaction: discord.Interaction, prompt: str, reply_to: str = None):
+@app_commands.describe(prompt="質問内容を入力してください。", secret="表示にしますか？")
+async def mania_slash(interaction: discord.Interaction, prompt: str, secret: bool = False):
     text = f"""system:{sys.argv[2]}
 user:{prompt}
 ウェブマニア:"""
-    await discord_generate(interaction, text, True)
+    await discord_generate(interaction, text, True, secret)
 
 #======= アプリコマンド =======
 @bot.tree.context_menu(name="mania")
