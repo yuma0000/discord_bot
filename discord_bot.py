@@ -16,7 +16,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from llama_cpp import Llama
-from http.server import SimpleHTTPRequestHeader
+from http.server import SimpleHTTPRequestHandler
 import socketserver
 
 # ====== 設定 ======
