@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import json
+import threading
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(BASE_DIR, "libs"))
@@ -62,9 +63,11 @@ logging.basicConfig(
 log = logging.getLogger("LLM-Bot")
 
 #webserver
-with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHandler) as httpd:
-    print("webserver start")
-    httpd.serve_forever()
+def start_ webserver():
+    with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHandler) as httpd:
+        print("webserver start")
+        httpd.serve_forever()
+threading.Thread(target=start_webserver, daemon=True).start()
 
 # ====== llama.cpp モデルロード ======
 log.info(f"Loading GGUF model from: {GGUF_PATH}")
@@ -96,10 +99,6 @@ async def generate_stream(prompt: str, match_cat):
 
     if match_cat and text.startswith(prompt):
         text = text[len(prompt):].lstrip()
-
-    if text == "":
-        msg = "空の文字が生成されてしまった このメッセージは消えます"
-        msg.delete(delay=5)
 
     for i in range(0, len(text), 80):
         yield text[i:i+80]
@@ -134,20 +133,17 @@ async def discord_generate(interaction: discord.Interaction, prompt: str, is_bas
 
     collected = ""
     async for chunk in generate_stream(prompt, is_base):
+        if chunk == "":
+            await msg.edit("空の文字が生成されてしまった、このメッセージは消えます")
+            await msg.delete(delay=5)
+            continue
+        
         collected += chunk
         await msg.edit(
             content=(collected[:MAX_DISCORD_LENGTH] + "…")
             if len(collected) > MAX_DISCORD_LENGTH else collected
         )
 
-    if reply_to:
-        channel = interaction.channel
-        try:
-            target = await channel.fetch_message(int(reply_to))
-            await target.reply(collected)
-        except:
-            await msg.edit(content=collected + "\n⚠️返信対象メッセージが見つかりませんでした。")
-    else:
         await msg.edit(content=collected)
  
 # ====== /mania ======
