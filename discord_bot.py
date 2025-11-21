@@ -19,6 +19,8 @@ from discord import app_commands
 from llama_cpp import Llama
 from http.server import SimpleHTTPRequestHandler
 import socketserver
+from collections import deque
+LOG_BUFFER = deque(maxlen=1000)
 
 # ====== 設定 ======
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -54,9 +56,16 @@ logging.basicConfig(
 log = logging.getLogger("LLM-Bot")
 
 #webserver
+class log_http_handler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(LOG_BUFFER.encode("utf-8"))
+
 def start_webserver():
-    with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHandler) as httpd:
-        print("webserver start")
+    with socketserver.TCPServer(("", 8080), log_http_handler) as httpd:
+        log.info("webserver start")
         httpd.serve_forever()
 threading.Thread(target=start_webserver, daemon=True).start()
 
@@ -119,6 +128,7 @@ class ManiaBot(commands.Bot):
 bot = ManiaBot()
 
 async def discord_generate(interaction: discord.Interaction, prompt: str, is_base: bool = True, secret: bool = False):
+    log_texts = f"ユーザー:{interaction.user}<br>入力:{prompt}<br>"
     await interaction.response.send_message(content="生成中です…", ephemeral=secret)
     msg = await interaction.original_response()
 
@@ -135,7 +145,8 @@ async def discord_generate(interaction: discord.Interaction, prompt: str, is_bas
             if len(collected) > MAX_DISCORD_LENGTH else collected
         )
 
-        await msg.edit(content=collected)
+    LOG_BUFFER.appendleft(f"{log_texts}出力:{collected}<br>")
+    #await msg.edit(content=collected)
  
 # ====== /mania ======
 @bot.tree.command(name="mania", description="ウェブマニアとして回答します。")
