@@ -61,13 +61,15 @@ class log_http_handler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(LOG_BUFFER.encode("utf-8"))
+        html = f"\n".join(LOG_BUFFER)
+        self.wfile.write(html.encode("utf-8"))
 
 def start_webserver():
-    with socketserver.TCPServer(("", 8080), log_http_handler) as httpd:
+    with socketserver.TCPServer(("", 80), log_http_handler) as httpd:
         log.info("webserver start")
         httpd.serve_forever()
-threading.Thread(target=start_webserver, daemon=True).start()
+thread = threading.Thread(target=start_webserver, daemon=True)
+thread.start()
 
 # ====== llama.cpp モデルロード ======
 log.info(f"Loading GGUF model from: {GGUF_PATH}")
@@ -160,12 +162,12 @@ user:{prompt}
 #======= アプリコマンド =======
 @bot.tree.context_menu(name="mania")
 async def mania_app(interaction: discord.Interaction, prompt: discord.Message):
-    await discord_generate(interaction, f"""system:{sys.argv[3]}
+    await discord_generate(interaction, f"""system:{sys.argv[2]}
 user:{prompt}
 ウェブマニア:""", True)
 
 @bot.tree.context_menu(name="free")
-async def mania_app(interaction: discord.Interaction, prompt: discord.Message):
+async def free_app(interaction: discord.Interaction, prompt: discord.Message):
     await discord_generate(interaction, prompt, False)
 
 # ====== !mania プレフィックス ======
