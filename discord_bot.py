@@ -16,10 +16,12 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from llama_cpp import Llama
+from http.server import SimpleHTTPRequestHeader
+import socketserver
 
 # ====== 設定 ======
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", sys.argv[1])
-GGUF_PATH = sys.argv[2]
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+GGUF_PATH = sys.argv[1]
 
 MAX_NEW_TOKENS = 100
 STREAM_DELAY = 0.3
@@ -58,6 +60,11 @@ logging.basicConfig(
     force=True
 )
 log = logging.getLogger("LLM-Bot")
+
+#webserver
+with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHeader) as httpd:
+    print("webserver start")
+    httpd.serve_forever()
 
 # ====== llama.cpp モデルロード ======
 log.info(f"Loading GGUF model from: {GGUF_PATH}")
@@ -146,7 +153,7 @@ async def discord_generate(interaction: discord.Interaction, prompt: str, reply_
 @bot.tree.command(name="mania", description="ウェブマニアとして回答します。")
 @app_commands.describe(prompt="質問内容を入力してください。", reply_to="返信したいメッセージID")
 async def mania_slash(interaction: discord.Interaction, prompt: str, reply_to: str = None):
-    text = f"""system:{sys.argv[3]}
+    text = f"""system:{sys.argv[2]}
 user:{prompt}
 ウェブマニア:"""
     await discord_generate(interaction, text, reply_to, True)
@@ -166,7 +173,11 @@ async def mania_app(interaction: discord.Interaction, prompt: discord.Message):
 @bot.command(name="mania")
 async def mania_prefix(ctx, *, prompt: str):
     await ctx.send("生成中です…")
-    async for chunk in generate_stream(prompt, False):
+    text = f"""system:ユーザーの内容を見てウェブマニアとして個性を活かして回答して下さい。
+user:{prompt}
+assistant:
+    """
+    async for chunk in generate_stream(text, False):
         await ctx.send(chunk)
 
 # ====== bot 実行 ======
