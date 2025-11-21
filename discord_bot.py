@@ -18,8 +18,8 @@ from discord import app_commands
 from llama_cpp import Llama
 
 # ====== 設定 ======
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-GGUF_PATH = sys.argv[1]
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", sys.argv[1])
+GGUF_PATH = sys.argv[2]
 
 MAX_NEW_TOKENS = 100
 STREAM_DELAY = 0.3
@@ -59,22 +59,6 @@ logging.basicConfig(
 )
 log = logging.getLogger("LLM-Bot")
 
-# ====== 検索データ読み込み ======
-def load_search_results(file_path):
-    search_list = []
-    with open(file_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                search_list.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-    return search_list
-
-SEARCH_RESULTS = load_search_results(os.path.join(BASE_DIR, "dataset.jsonl"))
-
 # ====== llama.cpp モデルロード ======
 log.info(f"Loading GGUF model from: {GGUF_PATH}")
 
@@ -88,7 +72,6 @@ llm = Llama(
 )
 
 log.info("GGUF model loaded successfully!")
-
 
 # ====== ストリーミング生成 ======
 async def generate_stream(prompt: str, match_cat):
@@ -133,8 +116,7 @@ class ManiaBot(commands.Bot):
 
     async def on_ready(self):
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")
-        log.info("Slash commands `/mania` and `/free` ready.")
-
+        log.info("mania bot is ready.")
 
 bot = ManiaBot()
 
@@ -164,90 +146,10 @@ async def discord_generate(interaction: discord.Interaction, prompt: str, reply_
 @bot.tree.command(name="mania", description="ウェブマニアとして回答します。")
 @app_commands.describe(prompt="質問内容を入力してください。", reply_to="返信したいメッセージID")
 async def mania_slash(interaction: discord.Interaction, prompt: str, reply_to: str = None):
-    text = f"""system:{sys.argv[2]}
+    text = f"""system:{sys.argv[3]}
 user:{prompt}
 ウェブマニア:"""
     await discord_generate(interaction, text, reply_to, True)
-
-# ====== /free ======
-@bot.tree.command(name="free", description="自由に質問できます。")
-@app_commands.describe(prompt="質問内容を入力してください。")
-async def free_slash(interaction: discord.Interaction, prompt: str):
-    await discord_generate(interaction, prompt, None, False)
-
-# ====== /search コマンド ======
-@bot.tree.command(name="search", description="キーワードに基づいて検索結果を返します。")
-@app_commands.describe(keyword="検索したいキーワードを入力してください。")
-async def search_slash(interaction: discord.Interaction, keyword: str):
-    await interaction.response.send_message("検索中… ⏳")
-    msg = await interaction.original_response()
-
-    keyword_lower = keyword.lower()
-    results = []
-
-    for entry in SEARCH_RESULTS:
-        instr = str(entry.get("instruction", "")).lower()
-        out = str(entry.get("output", "")).lower()
-        if keyword_lower in instr or keyword_lower in out:
-            results.append(entry)
-
-    if not results:
-        await msg.edit(content=f"⚠️ キーワード `{keyword}` に一致する結果は見つかりませんでした。")
-        return
-
-    text = ""
-    for r in results:
-        text += f"{r.get('instruction','')}\n> {r.get('output','')}\n\n"
-        if len(text) > 1800:
-            text = text[:1800] + "…"
-            break
-
-    await msg.edit(content=text)
-
-@bot.tree.command(name="settings", description="LLM の生成パラメータを変更します。")
-@app_commands.describe(param="パラメータ名", value="値")
-async def settings_slash(interaction: discord.Interaction, param: str, value: str = None):
-    param = param.lower()
-
-    if param == "show":
-        text = "**現在の生成パラメータ:**\n"
-        for k, v in GEN_CONFIG.items():
-            text += f"- {k}: {v}\n"
-        await interaction.response.send_message(text)
-        return
-
-    if param not in GEN_CONFIG:
-        await interaction.response.send_message(f"⚠️ `{param}` は設定できません", ephemeral=True)
-        return
-
-    if value is None:
-        await interaction.response.send_message(f"⚠️ `{param}` に新しい値を指定してください", ephemeral=True)
-        return
-
-    convert = NUMERIC_PARAMS.get(param, str)
-
-    try:
-        if param == "stop":
-            v = [s.strip() for s in value.split(",")]
-        else:
-            v = convert(value)
-    except Exception:
-        await interaction.response.send_message(f"⚠️ `{param}` を `{convert.__name__}` に変換できません", ephemeral=True)
-        return
-
-    GEN_CONFIG[param] = v
-    await interaction.response.send_message(f"🔧 `{param}` を `{v}` に変更しました。")
-
-@bot.tree.command(name="name", description="AIくん？の名前を変える")
-@app_commands.describe(name="名前を入れるのだ！")
-async def setname(interaction: discord.Interaction, name: str):
-    try:
-        await interaction.client.user.edit(username=name)
-        await interaction.response.send_message(f"名前を **{name}** に変更しました")
-    except Exception as e:
-        await interaction.response.send_message(f"変更エラー: {e}", ephemeral=True)
-
-    await interaction.response.send_message("⚠️ 無効なパラメータです。")
 
 #======= アプリコマンド =======
 @bot.tree.context_menu(name="mania")
