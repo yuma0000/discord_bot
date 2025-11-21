@@ -62,7 +62,7 @@ logging.basicConfig(
 log = logging.getLogger("LLM-Bot")
 
 #webserver
-with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHeader) as httpd:
+with socketserver.TCPServer(("", 8080), SimpleHTTPRequestHandler) as httpd:
     print("webserver start")
     httpd.serve_forever()
 
@@ -98,7 +98,8 @@ async def generate_stream(prompt: str, match_cat):
         text = text[len(prompt):].lstrip()
 
     if text == "":
-        text = "空の文字が生成されてしまった😢"
+        msg = "空の文字が生成されてしまった このメッセージは消えます"
+        msg.delete(delay=5)
 
     for i in range(0, len(text), 80):
         yield text[i:i+80]
@@ -127,7 +128,7 @@ class ManiaBot(commands.Bot):
 
 bot = ManiaBot()
 
-async def discord_generate(interaction: discord.Interaction, prompt: str, reply_to: str, is_base: bool = True):
+async def discord_generate(interaction: discord.Interaction, prompt: str, is_base: bool = True):
     await interaction.response.send_message("生成中です…")
     msg = await interaction.original_response()
 
@@ -156,18 +157,18 @@ async def mania_slash(interaction: discord.Interaction, prompt: str, reply_to: s
     text = f"""system:{sys.argv[2]}
 user:{prompt}
 ウェブマニア:"""
-    await discord_generate(interaction, text, reply_to, True)
+    await discord_generate(interaction, text, True)
 
 #======= アプリコマンド =======
 @bot.tree.context_menu(name="mania")
 async def mania_app(interaction: discord.Interaction, prompt: discord.Message):
     await discord_generate(interaction, f"""system:{sys.argv[3]}
 user:{prompt}
-ウェブマニア:""", None, True)
+ウェブマニア:""", True)
 
 @bot.tree.context_menu(name="free")
 async def mania_app(interaction: discord.Interaction, prompt: discord.Message):
-    await discord_generate(interaction, prompt, None, False)
+    await discord_generate(interaction, prompt, False)
 
 # ====== !mania プレフィックス ======
 @bot.command(name="mania")
